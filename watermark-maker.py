@@ -36,7 +36,7 @@ def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position="b
 
 def main():
     st.set_page_config(page_title="Batch Watermark Tool", page_icon="🖼️")
-    st.title("🖼️ Batch Image Watermarking Tool (build by c8geek)")
+    st.title("🖼️ Batch Image Watermarking Tool (Build by c8geek)")
 
     uploaded_images = st.file_uploader("Upload Photos", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
     watermark_file = st.file_uploader("Upload Watermark Logo", type=['png'])
