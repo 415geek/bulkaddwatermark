@@ -18,6 +18,11 @@ def load_settings(default_settings):
             default_settings.update(saved)
     return default_settings
 
+def resize_image(image, target_width):
+    w_percent = (target_width / float(image.width))
+    h_size = int((float(image.height) * float(w_percent)))
+    return image.resize((target_width, h_size))
+
 def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position=(0, 0)):
     image = image.convert("RGBA")
     watermark = watermark.convert("RGBA")
@@ -61,12 +66,19 @@ def main():
         "opacity": 180,
         "scale": 0.15,
         "x_offset": 0,
-        "y_offset": 0
+        "y_offset": 0,
+        "resize_images": False,
+        "target_width": 800
     }
     settings = load_settings(default_settings)
 
     opacity = st.slider("Watermark Transparency 水印透明度 (0-255)", 0, 255, settings["opacity"])
     scale = st.slider("Watermark Size 水印尺寸(relative to image width)", 0.05, 0.5, settings["scale"], step=0.01)
+
+    resize_images = st.checkbox("🪄 统一调整所有图片宽度（防止水印偏移）", value=settings["resize_images"])
+    target_width = settings["target_width"]
+    if resize_images:
+        target_width = st.number_input("目标宽度(px)", min_value=100, max_value=3000, value=target_width, step=50)
 
     if uploaded_images and watermark_file:
         watermark = Image.open(watermark_file)
@@ -77,6 +89,8 @@ def main():
         selected_file = next((f for f in uploaded_images if f.name == selected_filename), None)
         if selected_file:
             image = Image.open(selected_file)
+            if resize_images:
+                image = resize_image(image, target_width)
             max_x = image.width
             max_y = image.height
 
@@ -104,6 +118,8 @@ def main():
                 with zipfile.ZipFile(output_zip, "w") as zipf:
                     for uploaded_file in uploaded_images:
                         image = Image.open(uploaded_file)
+                        if resize_images:
+                            image = resize_image(image, target_width)
                         result = add_watermark_to_image(
                             image, watermark, opacity, scale, position=(x_offset, y_offset)
                         )
@@ -111,9 +127,9 @@ def main():
                         result.save(img_bytes, format="JPEG")
                         zipf.writestr(f"{uploaded_file.name}", img_bytes.getvalue())
 
-                st.success("✅ Watermarking Complete!添加水印完成")
+                st.success("✅ Watermarking Complete! 添加水印完成")
                 st.download_button(
-                    label="Download All Watermarked Images (ZIP)下载所有图片(有水印)",
+                    label="Download All Watermarked Images (ZIP) 下载所有图片(有水印)",
                     data=output_zip.getvalue(),
                     file_name="watermarked_images.zip",
                     mime="application/zip"
@@ -123,13 +139,14 @@ def main():
                 "opacity": opacity,
                 "scale": scale,
                 "x_offset": x_offset,
-                "y_offset": y_offset
+                "y_offset": y_offset,
+                "resize_images": resize_images,
+                "target_width": target_width
             })
 
     else:
         st.info("Please upload both images and a watermark logo to continue.")
 
-    # LinkedIn Button (same style as your SF Business Search app)
     show_linkedin_button()
 
 if __name__ == "__main__":
