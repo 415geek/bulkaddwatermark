@@ -1,33 +1,36 @@
 import streamlit as st
 from PIL import Image
-import os
 import io
 import zipfile
+import json
+import os
 
-def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position="bottom-right"):
+SETTINGS_FILE = "settings.json"
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f)
+
+def load_settings(default_settings):
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, "r") as f:
+            saved = json.load(f)
+            default_settings.update(saved)
+    return default_settings
+
+def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position=(0, 0)):
     image = image.convert("RGBA")
     watermark = watermark.convert("RGBA")
 
-    # Resize watermark relative to image
     wm_width = int(image.width * scale)
     wm_height = int(watermark.height * (wm_width / watermark.width))
     watermark_resized = watermark.resize((wm_width, wm_height))
 
-    # Apply transparency
     alpha = watermark_resized.getchannel("A").point(lambda p: int(p * (opacity / 255)))
     watermark_resized.putalpha(alpha)
 
-    # Positioning
-    if position == "bottom-right":
-        pos = (image.width - wm_width - 20, image.height - wm_height - 20)
-    elif position == "center":
-        pos = ((image.width - wm_width) // 2, (image.height - wm_height) // 2)
-    elif position == "top-left":
-        pos = (20, 20)
-    else:
-        pos = (20, 20)
+    pos = position
 
-    # Paste watermark
     watermarked = Image.new("RGBA", image.size)
     watermarked.paste(image, (0, 0))
     watermarked.paste(watermark_resized, pos, watermark_resized)
@@ -36,14 +39,21 @@ def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position="b
 
 def main():
     st.set_page_config(page_title="Batch Watermark Tool", page_icon="🖼️")
-    st.title("🖼️ Batch Image Watermarking Tool (Build by c8geek)")
+    st.title("🖼️ Batch Image Watermarking Tool (带记忆 & 自动居中)")
 
     uploaded_images = st.file_uploader("Upload Photos", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
     watermark_file = st.file_uploader("Upload Watermark Logo", type=['png'])
 
-    opacity = st.slider("Watermark Transparency (0-255)", 0, 255, 180)
-    scale = st.slider("Watermark Size (relative to image width)", 0.05, 0.5, 0.15, step=0.01)
-    position = st.selectbox("Watermark Position", ["bottom-right", "center", "top-left"])
+    default_settings = {
+        "opacity": 180,
+        "scale": 0.15,
+        "x_offset": 0,
+        "y_offset": 0
+    }
+    settings = load_settings(default_settings)
+
+    opacity = st.slider("Watermark Transparency (0-255)", 0, 255, settings["opacity"])
+    scale = st.slider("Watermark Size (relative to image width)", 0.05, 0.5, settings["scale"], step=0.01)
 
     if uploaded_images and watermark_file:
         watermark = Image.open(watermark_file)
@@ -54,34 +64,54 @@ def main():
         selected_file = next((f for f in uploaded_images if f.name == selected_filename), None)
         if selected_file:
             image = Image.open(selected_file)
-            result = add_watermark_to_image(image, watermark, opacity, scale, position)
+            max_x = image.width
+            max_y = image.height
+
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                x_offset = st.slider(f"Horizontal Offset (Max: {max_x})", 0, max_x, settings["x_offset"])
+                y_offset = st.slider(f"Vertical Offset (Max: {max_y})", 0, max_y, settings["y_offset"])
+            with col2:
+                if st.button("Auto Center"):
+                    x_offset = (max_x - int(image.width * scale)) // 2
+                    y_offset = (max_y - int(image.height * scale * watermark.height / watermark.width)) // 2
+                    st.experimental_rerun()
+
+            result = add_watermark_to_image(image, watermark, opacity, scale, position=(x_offset, y_offset))
             st.image(result, caption="Preview of Watermarked Image", use_column_width=True)
 
-        st.markdown("---")
+            if st.button("Start Batch Watermarking"):
+                output_zip = io.BytesIO()
+                with zipfile.ZipFile(output_zip, "w") as zipf:
+                    for uploaded_file in uploaded_images:
+                        image = Image.open(uploaded_file)
+                        result = add_watermark_to_image(
+                            image, watermark, opacity, scale, position=(x_offset, y_offset)
+                        )
+                        img_bytes = io.BytesIO()
+                        result.save(img_bytes, format="JPEG")
+                        zipf.writestr(f"watermarked_{uploaded_file.name}", img_bytes.getvalue())
 
-        if st.button("Start Batch Watermarking"):
-            output_zip = io.BytesIO()
-            with zipfile.ZipFile(output_zip, "w") as zipf:
-                for uploaded_file in uploaded_images:
-                    image = Image.open(uploaded_file)
-                    result = add_watermark_to_image(image, watermark, opacity, scale, position)
+                st.success("✅ Watermarking Complete!")
+                st.download_button(
+                    label="Download All Watermarked Images (ZIP)",
+                    data=output_zip.getvalue(),
+                    file_name="watermarked_images.zip",
+                    mime="application/zip"
+                )
 
-                    # Save in-memory
-                    img_bytes = io.BytesIO()
-                    result.save(img_bytes, format="JPEG")
-                    zipf.writestr(f"{uploaded_file.name}", img_bytes.getvalue())
+            # Save settings after batch
+            save_settings({
+                "opacity": opacity,
+                "scale": scale,
+                "x_offset": x_offset,
+                "y_offset": y_offset
+            })
 
-            st.success("✅ Watermarking Complete!")
-            st.download_button(
-                label="Download All Watermarked Images (ZIP)",
-                data=output_zip.getvalue(),
-                file_name="watermarked_images.zip",
-                mime="application/zip"
-            )
     else:
         st.info("Please upload both images and a watermark logo to continue.")
 
-    # LinkedIn Button in Sidebar
+    # LinkedIn Button
     with st.sidebar:
         st.markdown("---")
         st.markdown(
