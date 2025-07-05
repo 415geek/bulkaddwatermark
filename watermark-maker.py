@@ -37,9 +37,22 @@ def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position=(0
 
     return watermarked.convert("RGB")
 
+def show_linkedin_button():
+    st.markdown(
+        """
+        <div style="text-align:right;">
+            <a href="https://www.linkedin.com/in/lingyu-maxwell-lai" target="_blank" style="text-decoration: none;">
+                <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="16" style="vertical-align:middle; margin-right: 8px;">
+                <span style="font-size: 14px; color: #888;">Build by Maxwell Lai</span>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def main():
     st.set_page_config(page_title="Batch Watermark Tool", page_icon="🖼️")
-    st.title("🖼️ Batch Image Watermarking Tool Build by c8geek")
+    st.title("🖼️ Batch Image Watermarking Tool 批量水印制作工具")
 
     uploaded_images = st.file_uploader("Upload Photos", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
     watermark_file = st.file_uploader("Upload Watermark Logo", type=['png'])
@@ -67,15 +80,21 @@ def main():
             max_x = image.width
             max_y = image.height
 
+            if 'auto_center' not in st.session_state:
+                st.session_state.auto_center = False
+
             col1, col2 = st.columns([4, 1])
             with col1:
-                x_offset = st.slider(f"Horizontal Offset (Max: {max_x})", 0, max_x, settings["x_offset"])
-                y_offset = st.slider(f"Vertical Offset (Max: {max_y})", 0, max_y, settings["y_offset"])
-            with col2:
-                if st.button("Auto Center"):
+                if st.session_state.auto_center:
                     x_offset = (max_x - int(image.width * scale)) // 2
                     y_offset = (max_y - int(image.height * scale * watermark.height / watermark.width)) // 2
-                    st.experimental_rerun()
+                    st.session_state.auto_center = False
+                else:
+                    x_offset = st.slider(f"Horizontal Offset (Max: {max_x})", 0, max_x, settings["x_offset"])
+                    y_offset = st.slider(f"Vertical Offset (Max: {max_y})", 0, max_y, settings["y_offset"])
+            with col2:
+                if st.button("Auto Center"):
+                    st.session_state.auto_center = True
 
             result = add_watermark_to_image(image, watermark, opacity, scale, position=(x_offset, y_offset))
             st.image(result, caption="Preview of Watermarked Image", use_column_width=True)
@@ -100,7 +119,6 @@ def main():
                     mime="application/zip"
                 )
 
-            # Save settings after batch
             save_settings({
                 "opacity": opacity,
                 "scale": scale,
@@ -111,18 +129,8 @@ def main():
     else:
         st.info("Please upload both images and a watermark logo to continue.")
 
-    # LinkedIn Button
-    with st.sidebar:
-        st.markdown("---")
-        st.markdown(
-            """
-            <a href="https://www.linkedin.com/in/lingyu-maxwell-lai" target="_blank">
-                <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20" style="vertical-align:middle;">
-                <span style="font-size: 16px;"> Connect on LinkedIn</span>
-            </a>
-            """,
-            unsafe_allow_html=True
-        )
+    # LinkedIn Button (same style as your SF Business Search app)
+    show_linkedin_button()
 
 if __name__ == "__main__":
     main()
