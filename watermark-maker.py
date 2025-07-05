@@ -69,7 +69,7 @@ def main():
                     # Save in-memory
                     img_bytes = io.BytesIO()
                     result.save(img_bytes, format="JPEG")
-                    zipf.writestr(f"watermarked_{uploaded_file.name}", img_bytes.getvalue())
+                    zipf.writestr(f"{uploaded_file.name}", img_bytes.getvalue())
 
             st.success("✅ Watermarking Complete!")
             st.download_button(
