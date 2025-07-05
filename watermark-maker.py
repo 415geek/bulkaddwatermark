@@ -111,7 +111,7 @@ def main():
                     st.session_state.auto_center = True
 
             result = add_watermark_to_image(image, watermark, opacity, scale, position=(x_offset, y_offset))
-            st.image(result, caption="Preview of Watermarked Image", use_column_width=True)
+            st.image(result, caption="Preview of Watermarked Image", use_container_width=True)
 
             if st.button("Start Batch Watermarking 开始制作"):
                 output_zip = io.BytesIO()
