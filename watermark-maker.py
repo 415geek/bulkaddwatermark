@@ -54,8 +54,8 @@ def main():
     st.set_page_config(page_title="Batch Watermark Tool", page_icon="🖼️")
     st.title("🖼️ Batch Image Watermarking Tool 批量水印制作工具")
 
-    uploaded_images = st.file_uploader("Upload Photos", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
-    watermark_file = st.file_uploader("Upload Watermark Logo", type=['png'])
+    uploaded_images = st.file_uploader("Upload Photos 上传图片文档", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
+    watermark_file = st.file_uploader("Upload Watermark Logo 上传水印文档", type=['png'])
 
     default_settings = {
         "opacity": 180,
@@ -65,8 +65,8 @@ def main():
     }
     settings = load_settings(default_settings)
 
-    opacity = st.slider("Watermark Transparency (0-255)", 0, 255, settings["opacity"])
-    scale = st.slider("Watermark Size (relative to image width)", 0.05, 0.5, settings["scale"], step=0.01)
+    opacity = st.slider("Watermark Transparency 水印透明度 (0-255)", 0, 255, settings["opacity"])
+    scale = st.slider("Watermark Size 水印尺寸(relative to image width)", 0.05, 0.5, settings["scale"], step=0.01)
 
     if uploaded_images and watermark_file:
         watermark = Image.open(watermark_file)
@@ -90,8 +90,8 @@ def main():
                     y_offset = (max_y - int(image.height * scale * watermark.height / watermark.width)) // 2
                     st.session_state.auto_center = False
                 else:
-                    x_offset = st.slider(f"Horizontal Offset (Max: {max_x})", 0, max_x, settings["x_offset"])
-                    y_offset = st.slider(f"Vertical Offset (Max: {max_y})", 0, max_y, settings["y_offset"])
+                    x_offset = st.slider(f"Horizontal Offset 左右调整(Max: {max_x})", 0, max_x, settings["x_offset"])
+                    y_offset = st.slider(f"Vertical Offset 上下调整(Max: {max_y})", 0, max_y, settings["y_offset"])
             with col2:
                 if st.button("Auto Center"):
                     st.session_state.auto_center = True
@@ -99,7 +99,7 @@ def main():
             result = add_watermark_to_image(image, watermark, opacity, scale, position=(x_offset, y_offset))
             st.image(result, caption="Preview of Watermarked Image", use_column_width=True)
 
-            if st.button("Start Batch Watermarking"):
+            if st.button("Start Batch Watermarking 开始制作"):
                 output_zip = io.BytesIO()
                 with zipfile.ZipFile(output_zip, "w") as zipf:
                     for uploaded_file in uploaded_images:
@@ -111,9 +111,9 @@ def main():
                         result.save(img_bytes, format="JPEG")
                         zipf.writestr(f"{uploaded_file.name}", img_bytes.getvalue())
 
-                st.success("✅ Watermarking Complete!")
+                st.success("✅ Watermarking Complete!添加水印完成")
                 st.download_button(
-                    label="Download All Watermarked Images (ZIP)",
+                    label="Download All Watermarked Images (ZIP)下载所有图片(有水印)",
                     data=output_zip.getvalue(),
                     file_name="watermarked_images.zip",
                     mime="application/zip"
