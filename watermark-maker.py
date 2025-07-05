@@ -39,7 +39,7 @@ def add_watermark_to_image(image, watermark, opacity=128, scale=0.2, position=(0
 
 def main():
     st.set_page_config(page_title="Batch Watermark Tool", page_icon="🖼️")
-    st.title("🖼️ Batch Image Watermarking Tool (带记忆 & 自动居中)")
+    st.title("🖼️ Batch Image Watermarking Tool Build by c8geek")
 
     uploaded_images = st.file_uploader("Upload Photos", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
     watermark_file = st.file_uploader("Upload Watermark Logo", type=['png'])
@@ -90,7 +90,7 @@ def main():
                         )
                         img_bytes = io.BytesIO()
                         result.save(img_bytes, format="JPEG")
-                        zipf.writestr(f"watermarked_{uploaded_file.name}", img_bytes.getvalue())
+                        zipf.writestr(f"{uploaded_file.name}", img_bytes.getvalue())
 
                 st.success("✅ Watermarking Complete!")
                 st.download_button(
